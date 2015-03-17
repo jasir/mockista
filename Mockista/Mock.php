@@ -72,7 +72,9 @@ class Mock implements MockInterface
 
 		$best = NULL;
 
-		foreach ($this->methods[$name] as $method) {
+		$candidates = $this->methods[$name];
+
+		foreach ($candidates as $method) {
 			if ($method->hasArgs() && $method->matchArgs($args)) {
 				return $method;
 			}
@@ -83,22 +85,33 @@ class Mock implements MockInterface
 		}
 
 		if (!$best) {
-			$argsStr = '';
-
-			foreach ($args as $arg) {
-				ob_start();
-				var_dump($arg);
-				$lines = explode(PHP_EOL, ob_get_clean());
-				for ($i = 0; $i < count($lines); $i++) {
-					$argsStr .= PHP_EOL . ($i === 0 ? '- ' : '  ') . $lines[$i];
-				}
-
+			$argStr = '';
+			foreach ($args as $key => $arg) {
+				$argStr .= "Parameter #{$key}:";
+				$argStr .= $this->dump($arg);
+				$argStr .= "\n";
 			}
+
 			$objectName = $this->name ? $this->name : 'unnammed';
-			throw new MockException("Unexpected call in mock $objectName::$name(), args:\n$argsStr", MockException::CODE_INVALID_ARGS);
+
+			throw new MockException(
+				"Unexpected call in mock $objectName::$name(), none of " . count($candidates)
+				. " method(s) expected calls to this method has been matched by arguments.\nCalled with (" . count($args) . ") arguments:\n\n"
+				. $argStr , MockException::CODE_INVALID_ARGS
+			);
 		}
 
 		return $best;
+	}
+
+
+	private function dump($arg)
+	{
+		if (class_exists('Tracy\Dumper')) {
+			return \Tracy\Dumper::dump($arg);
+		} else {
+			return print_r($arg, true);
+		}
 	}
 
 	/**
