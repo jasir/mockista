@@ -27,6 +27,10 @@ class ClassGenerator
 				$outArr .= '&';
 			}
 
+			if ($param['variadic']) {
+				$outArr .= '...';
+			}
+
 			$outArr .= '$' . $param['name'];
 			if (array_key_exists('default', $param)) {
 				$outArr .= ' = ' . $this->removeNewLines(
@@ -137,8 +141,9 @@ class ClassGenerator
 		$params = $this->generateParams($method['parameters']);
 		$static = $method['static'] ? 'static ' : '';
 		$passedByReference = $method['passedByReference'] ? '&' : '';
+		$returnType = $method['returnType'] ? ' : ' . $method['returnType'] : '';
 		$out = "
-	{$static}function $passedByReference$methodName($params)
+	{$static}function $passedByReference$methodName($params)$returnType
 	{
 		\$l = call_user_func_array(array(\$this->mockista, '$methodName'), func_get_args());
 		return \$l;

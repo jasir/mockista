@@ -24,6 +24,7 @@ class MethodFinder
 			'static' => $method->isStatic(),
 			'passedByReference' => $this->isMethodPassedByReference($method),
 			'final' => $method->isFinal(),
+			'returnType' => PHP_VERSION_ID >= 70000 ? (string) $method->getReturnType() : NULL,
 		);
 	}
 
@@ -41,13 +42,16 @@ class MethodFinder
 			$parameterDesc = array(
 				'name' => $parameter->getName(),
 				'typehint' => null,
+				'variadic' => FALSE,
 			);
 
 			$parameterDesc['passedByReference'] = $parameter->isPassedByReference();
 
 			if ($parameter->isOptional()) {
-				if ($parameter->getDeclaringClass()->isInternal() === FALSE) {
+				if ($parameter->getDeclaringClass()->isInternal() === FALSE && $parameter->isDefaultValueAvailable()) {
 					$parameterDesc['default'] = $parameter->getDefaultValue();
+				} elseif (PHP_VERSION_ID >= 50600 && $parameter->isVariadic()) {
+					$parameterDesc['variadic'] = TRUE;
 				} else {
 					$parameterDesc['default'] = NULL;
 				}
@@ -62,7 +66,12 @@ class MethodFinder
 					$parameterDesc['typehint'] = $klass->getName();
 				}
 				else {
-					$parameterDesc['typehint'] = null;
+					if (PHP_VERSION_ID >= 70000) {
+						$parameterDesc['typehint'] = (string) $parameter->getType();
+					}
+					else {
+						$parameterDesc['typehint'] = null;
+					}
 				}
 			}
 			$out[$parameter->getPosition()] = $parameterDesc;
